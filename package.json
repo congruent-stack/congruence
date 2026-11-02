@@ -1,0 +1,33 @@
+{
+  "name": "congruence",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.13.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,web \"pnpm --filter @congruence/server dev\" \"pnpm --filter @congruence/web dev\"",
+    "generate": "tsx scripts/export-openapi.ts && orval --config orval.config.ts",
+    "typecheck": "tsc -p tsconfig.json && pnpm -r typecheck",
+    "build": "pnpm generate && pnpm typecheck && pnpm --filter @congruence/web build && pnpm --filter @congruence/server build",
+    "start": "pnpm --filter @congruence/server start",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm build && pnpm test && pnpm test:e2e"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.0",
+    "esbuild": "0.28.2",
+    "orval": "8.46.0",
+    "prettier": "3.6.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

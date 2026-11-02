@@ -1,0 +1,4 @@
+{
+  "description": "Congruence messaging for Claude Code Desktop sessions",
+  "modules": ["./register.ts"]
+}

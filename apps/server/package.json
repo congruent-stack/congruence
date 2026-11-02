@@ -1,0 +1,28 @@
+{
+  "name": "@congruence/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --watch-preserve-output --import tsx src/main.ts --no-web",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "node ../../scripts/build-server.mjs",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@congruence/contracts": "workspace:*",
+    "@fastify/static": "^8.3.0",
+    "@fastify/swagger": "^9.5.0",
+    "@fastify/type-provider-typebox": "6.3.0",
+    "@modelcontextprotocol/node": "2.1.2",
+    "@modelcontextprotocol/server": "2.4.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "esbuild": "0.28.2",
+    "fastify": "5.12.7",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "toml-eslint-parser": "^1.0.3",
+    "typebox": "1.4.3"
+  }
+}

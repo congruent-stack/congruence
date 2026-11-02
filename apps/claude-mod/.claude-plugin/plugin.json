@@ -1,0 +1,7 @@
+{
+  "name": "congruence",
+  "version": "0.1.0",
+  "description": "Delivers Congruence dashboard messages to this Claude Code Desktop session and reports Claude's replies.",
+  "author": { "name": "Congruence" },
+  "types": "./types/index.d.ts"
+}

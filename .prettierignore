@@ -1,0 +1,9 @@
+node_modules
+dist
+.local
+test-results
+playwright-report
+pnpm-lock.yaml
+packages/api-client/src/generated
+packages/api-client/openapi.json
+apps/claude-mod/.claude-plugin/types
