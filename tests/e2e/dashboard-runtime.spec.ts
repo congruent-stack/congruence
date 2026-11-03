@@ -73,7 +73,9 @@ test('published React dashboards read backend data, review frozen commands, surv
     expect(published.statusCode, published.body).toBe(200);
     const first = published.json<DashboardSummary>();
     await page.goto(url);
-    await page.getByLabel('Dashboard', { exact: true }).selectOption(location.dashboard.id);
+    const switcher = page.getByRole('button', { name: /^Switch workspace and view/ });
+    await switcher.click();
+    await page.getByLabel('View', { exact: true }).selectOption(location.dashboard.id);
     const frame = page.frameLocator('iframe');
     await expect(frame.getByRole('heading', { name: 'Station readings' })).toBeVisible();
     await expect(frame.getByText('North station · 18 °C')).toBeVisible();
@@ -106,7 +108,7 @@ test('published React dashboards read backend data, review frozen commands, surv
     );
     expect(saved).toEqual(run.input);
     await page.goto(url);
-    await expect(page.getByLabel('Dashboard', { exact: true })).toHaveValue(location.dashboard.id);
+    await expect(switcher).toContainText('Station overview');
     await expect(frame.getByText('Changed after review · 99 °C')).toBeVisible();
     await frame.getByRole('button', { name: 'Analyse readings' }).click();
     await dialog.getByRole('button', { name: 'Review command', exact: true }).click();
@@ -130,10 +132,17 @@ test('published React dashboards read backend data, review frozen commands, surv
     await expect(
       frame.getByRole('heading', { name: 'Station readings', exact: true }),
     ).toBeVisible();
+    await switcher.click();
+    await page.getByRole('button', { name: 'Refresh dashboards' }).click();
+    const updatedHeading = frame.getByRole('heading', {
+      name: 'Updated station readings',
+      exact: true,
+    });
+    await expect(updatedHeading).toBeVisible();
+    await updatedHeading.click({ position: { x: 4, y: 4 } });
+    await expect(page.getByRole('dialog', { name: 'Workspace and view' })).toBeHidden();
     await page.reload();
-    await expect(
-      frame.getByRole('heading', { name: 'Updated station readings', exact: true }),
-    ).toBeVisible();
+    await expect(updatedHeading).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

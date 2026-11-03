@@ -36,12 +36,11 @@ test('reviews live proposals and manages past requests only through explicit fro
     resets = 0;
     await client.connect(new StreamableHTTPClientTransport(new URL('/mcp', url)));
     await page.goto(url);
-    const agentsButton = page.getByRole('button', { name: 'Agents', exact: true });
-    await expect(agentsButton).toHaveCount(1);
+    const agentsButton = page
+      .getByRole('banner')
+      .getByRole('button', { name: 'Agents', exact: true });
+    await expect(page.getByRole('button', { name: 'Agents', exact: true })).toHaveCount(1);
     await expect(agentsButton).toHaveText('Agents');
-    await expect(
-      page.getByRole('banner').getByRole('button', { name: /settings|agent/i }),
-    ).toHaveCount(0);
     // Reproduce an agent that read settings but skipped its proposal before reporting progress.
     await client.callTool({ name: 'get_agent_settings', arguments: {} });
     await client.callTool({ name: 'list_workspaces', arguments: {} });

@@ -1,21 +1,16 @@
 import { useState } from 'react';
 import { createWorkspace, updateWorkspace } from '@congruence/api-client';
 import type { Workspace, WorkspaceInput } from '@congruence/contracts';
-import {
-  ChevronDown,
-  LoaderCircle,
-  Pencil,
-  PlugZap,
-  Plus,
-  RefreshCw,
-  TriangleAlert,
-  Workflow,
-} from 'lucide-react';
+import { LoaderCircle, PlugZap, Plus, RefreshCw, TriangleAlert, Workflow } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { ActivityFeed } from '../features/activity/ActivityFeed';
+import { DashboardFrame } from '../features/dashboards/DashboardFrame';
+import { useWorkspaceViews } from '../features/dashboards/useWorkspaceViews';
 import { WorkspaceEditor } from '../features/workspaces/WorkspaceEditor';
+import { WorkspaceSwitcher } from '../features/workspaces/WorkspaceSwitcher';
 import { useDashboard } from '../features/workspaces/useDashboard';
-import { WorkspaceDashboards } from '../features/dashboards/WorkspaceDashboards';
 import { AgentConnections } from '../panels/AgentConnections';
+import { WorkspacePanels } from '../panels/WorkspacePanels';
 import {
   missingModText,
   settingsAttention,
@@ -24,7 +19,8 @@ import {
 
 export function App() {
   const dashboard = useDashboard();
-  const { workspace, workspaces, activeId, activity, error, loaded } = dashboard;
+  const { workspace, workspaces, activity, error, loaded } = dashboard;
+  const views = useWorkspaceViews(workspace?.id);
   const [editor, setEditor] = useState<'new' | Workspace>();
   const [setup, setSetup] = useState(false);
   const settingsReview = useAgentSettingsReview();
@@ -38,14 +34,12 @@ export function App() {
     .filter(Boolean)
     .join('; ');
 
-  async function saveWorkspace(input: WorkspaceInput) {
-    const saved =
-      editor && editor !== 'new'
-        ? await updateWorkspace(editor.id, input)
-        : await createWorkspace(input);
+  async function saveWorkspace(input: WorkspaceInput, original?: Workspace) {
+    const saved = original
+      ? await updateWorkspace(original.id, input)
+      : await createWorkspace(input);
     dashboard.setActiveId(saved.id);
     dashboard.refresh();
-    setEditor(undefined);
   }
 
   return (
@@ -54,41 +48,44 @@ export function App() {
         <div className="topbar-inner">
           <a className="brand" href="/" aria-label="Congruence home">
             <Workflow size={20} />
-            congruence
+            <span>congruence</span>
           </a>
-          <div className="workspace-switcher">
-            {workspaces.length > 0 && (
-              <div className="workspace-select-wrap">
-                <select
-                  aria-label="Current workspace"
-                  value={activeId}
-                  onChange={(event) => dashboard.setActiveId(event.target.value)}
-                >
-                  {workspaces.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="New workspace"
-              title="New workspace"
-              onClick={() => setEditor('new')}
-            >
-              <Plus size={18} />
-            </Button>
-          </div>
+          {loaded && (
+            <WorkspaceSwitcher
+              workspace={workspace}
+              workspaces={workspaces}
+              views={views}
+              onSelect={dashboard.setActiveId}
+              onSave={saveWorkspace}
+            />
+          )}
           <div className="local-status" role="status">
             <span className={`connection-dot ${error ? 'offline' : !loaded ? 'pending' : ''}`} />
             <span>{error ? 'Offline' : loaded ? 'Local' : 'Connecting'}</span>
           </div>
+          <Button
+            variant="secondary"
+            className="agents-button"
+            aria-label="Agents"
+            aria-describedby={pendingSettings ? 'agent-approval-summary' : undefined}
+            onClick={() => {
+              settingsReview.refresh();
+              setSetup(true);
+            }}
+          >
+            <PlugZap size={16} />
+            Agents
+            {pendingSettings > 0 && (
+              <span className="approval-count" aria-hidden="true">
+                {pendingSettings}
+              </span>
+            )}
+          </Button>
         </div>
       </header>
+      <span id="agent-approval-summary" className="sr-only" role="status">
+        {attentionSummary}
+      </span>
       <main className="main-content">
         {error && (
           <div className="connection-error" role="alert">
@@ -114,55 +111,41 @@ export function App() {
           </div>
         ) : workspace ? (
           <>
-            <div className="page-heading">
-              <div className="workspace-heading">
-                <div className="workspace-title">
-                  <h1>{workspace.name}</h1>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Edit workspace"
-                    title="Edit workspace"
-                    onClick={() => setEditor(workspace)}
-                  >
-                    <Pencil size={15} />
-                  </Button>
-                </div>
-                {workspace.description && <p>{workspace.description}</p>}
-                <div className="workspace-id">
-                  Workspace ID <code>{workspace.shortId}</code>
-                </div>
+            <h1 className="sr-only">{workspace.name}</h1>
+            {views.error && (
+              <div className="dashboard-list-error" role="alert">
+                <p>Dashboards could not be loaded. {views.error}</p>
+                <Button
+                  size="small"
+                  variant="secondary"
+                  disabled={views.refreshing}
+                  onClick={views.refresh}
+                >
+                  Retry dashboards
+                </Button>
               </div>
-              <Button
-                variant="secondary"
-                aria-label="Agents"
-                aria-describedby={pendingSettings ? 'agent-approval-summary' : undefined}
-                onClick={() => {
-                  settingsReview.refresh();
-                  setSetup(true);
-                }}
-              >
-                <PlugZap size={16} />
-                Agents
-                {pendingSettings > 0 && (
-                  <span className="approval-count" aria-hidden="true">
-                    {pendingSettings}
-                  </span>
-                )}
-              </Button>
-            </div>
-            <span id="agent-approval-summary" className="sr-only" role="status">
-              {attentionSummary}
-            </span>
-            <WorkspaceDashboards
-              key={workspace.id}
-              workspace={workspace}
-              activities={activity}
-              loading={dashboard.activityLoading}
-              agentSettings={settingsReview.review?.settings}
-              agentSettingsError={settingsReview.error}
-              onEdit={() => setEditor(workspace)}
-            />
+            )}
+            {views.selected ? (
+              <section className="custom-dashboard" aria-label={views.selected.name}>
+                <DashboardFrame
+                  key={`${workspace.id}:${views.selected.id}:${views.selected.version}:${views.revision}`}
+                  workspace={workspace}
+                  dashboard={views.selected}
+                  activities={activity}
+                />
+              </section>
+            ) : (
+              <div className="dashboard-grid">
+                <ActivityFeed
+                  key={workspace.id}
+                  items={activity}
+                  loading={dashboard.activityLoading}
+                  agentSettings={settingsReview.review?.settings}
+                  agentSettingsError={settingsReview.error}
+                />
+                <WorkspacePanels workspace={workspace} onEdit={() => setEditor(workspace)} />
+              </div>
+            )}
           </>
         ) : (
           <div className="welcome">
@@ -178,7 +161,10 @@ export function App() {
       {editor && (
         <WorkspaceEditor
           workspace={editor === 'new' ? undefined : editor}
-          onSave={saveWorkspace}
+          onSave={async (input) => {
+            await saveWorkspace(input, editor === 'new' ? undefined : editor);
+            setEditor(undefined);
+          }}
           onClose={() => setEditor(undefined)}
         />
       )}

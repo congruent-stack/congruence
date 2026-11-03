@@ -134,8 +134,9 @@ async function dashboardFixture(page: Page, workspace: Workspace) {
     await route.fulfill({ json: run });
   });
   await page.goto('/');
+  await page.getByRole('button', { name: /^Switch workspace and view/ }).click();
   await page.getByLabel('Current workspace').selectOption(workspace.id);
-  await page.getByLabel('Dashboard', { exact: true }).selectOption('weather');
+  await page.getByLabel('View', { exact: true }).selectOption('weather');
   await expect(
     page.frameLocator('iframe').getByRole('heading', { name: 'Forecast controls' }),
   ).toBeVisible();
@@ -169,7 +170,8 @@ test('custom dashboard commands require host review and retain the exact resolve
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByText('Command history', { exact: false }).click();
   await expect(page.locator('.dashboard-run')).toContainText('Collect snapshot');
-  await page.getByLabel('Dashboard', { exact: true }).selectOption('activity');
+  await page.getByRole('button', { name: /^Switch workspace and view/ }).click();
+  await page.getByLabel('View', { exact: true }).selectOption('activity');
   await expect(page.locator('iframe')).toHaveCount(0);
 });
 
@@ -236,16 +238,18 @@ test('dashboard choice persists separately for each workspace and Activity stays
     })
   ).json()) as Workspace;
   await dashboardFixture(page, first);
-  await expect(page.getByLabel('Dashboard', { exact: true }).locator('option').first()).toHaveText(
-    'Activity',
-  );
   await page.reload();
-  await expect(page.getByLabel('Dashboard', { exact: true })).toHaveValue('weather');
+  const switcher = page.getByRole('button', { name: /^Switch workspace and view/ });
+  await expect(switcher).toContainText('Weather console');
+  await switcher.click();
+  const view = page.getByLabel('View', { exact: true });
+  await expect(view.locator('option').first()).toHaveText('Activity');
+  await expect(view).toHaveValue('weather');
   await page.getByLabel('Current workspace').selectOption(second.id);
-  await expect(page.getByLabel('Dashboard', { exact: true })).toHaveValue('activity');
-  await expect(page.getByLabel('Dashboard', { exact: true }).locator('option')).toHaveCount(1);
+  await expect(view).toHaveValue('activity');
+  await expect(view.locator('option')).toHaveCount(1);
   await page.getByLabel('Current workspace').selectOption(first.id);
-  await expect(page.getByLabel('Dashboard', { exact: true })).toHaveValue('weather');
+  await expect(view).toHaveValue('weather');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

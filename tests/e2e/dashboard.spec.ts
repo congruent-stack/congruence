@@ -5,11 +5,15 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { buildApp } from '../../apps/server/src/app.js';
 
+test.use({ deviceScaleFactor: 2 });
+
 test('workspaces receive real MCP updates, preserve isolation, and work on mobile', async ({
   page,
   request,
 }) => {
   const browserErrors: string[] = [];
+  const switcher = page.getByRole('button', { name: /^Switch workspace and view/ });
+  const popup = page.getByRole('dialog', { name: 'Workspace and view' });
   // Fictional projects and work reports used only for UI testing and screenshots.
   page.on('pageerror', (error) => browserErrors.push(error.message));
   await page.goto('/');
@@ -17,20 +21,22 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
   await page.getByLabel('Workspace name').fill('Veyra');
   await page.getByLabel(/^Description/).fill('A stargazing planner for weekend trips.');
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Veyra', exact: true })).toBeVisible();
+  await expect(switcher).toHaveAccessibleName('Switch workspace and view, Veyra, Activity');
   await expect(page.getByText('No activity yet')).toBeVisible();
-  await page.getByRole('button', { name: 'Edit workspace' }).click();
+  await switcher.click();
+  await popup.getByRole('button', { name: 'Edit workspace' }).click();
   await page
     .getByRole('textbox', { name: /^Repositories/ })
     .fill('D:\\projects\\veyra-web\nhttps://example.com/veyra/star-catalog');
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'New workspace', exact: true }).click();
+  await switcher.click();
+  await popup.getByRole('button', { name: 'New workspace', exact: true }).click();
   await page.getByLabel('Workspace name').fill('Mosslight');
   await page.getByLabel(/^Description/).fill('A field journal for urban wildlife.');
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Mosslight', exact: true })).toBeVisible();
+  await expect(switcher).toContainText('Mosslight');
   const workspaces = await (await request.get('/api/workspaces')).json();
   const veyra = workspaces.find((workspace: { name: string }) => workspace.name === 'Veyra');
   const mosslight = workspaces.find(
@@ -56,7 +62,9 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
     expect(result.isError).not.toBe(true);
     const { activity: item } = result.structuredContent as { activity: { workKey: string } };
     await expect(page.getByText(report.title)).toHaveCount(0);
-    await page.getByLabel('Current workspace').selectOption(veyra.id);
+    await switcher.click();
+    await popup.getByLabel('Current workspace').selectOption(veyra.id);
+    await page.keyboard.press('Escape');
     const list = page.locator('.activity-list');
     const row = list.getByRole('button', { name: report.title, exact: true });
     const reader = page.locator('article.activity-reader');
@@ -175,7 +183,7 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
     ).toHaveCount(0);
     await page.getByLabel('Search activity').fill('');
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Veyra', exact: true })).toBeVisible();
+    await expect(switcher).toContainText('Veyra');
     await expect(page.locator('article.activity-item')).toHaveCount(3);
     const [sidebarBounds, readerBounds, repositoryBounds] = await Promise.all([
       page.locator('.activity-sidebar').boundingBox(),
@@ -192,10 +200,11 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
     await page.screenshot({
       path: resolve('.local/screenshots/dashboard-desktop.png'),
       fullPage: true,
+      scale: 'css',
       animations: 'disabled',
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByRole('heading', { name: 'Veyra', exact: true })).toBeVisible();
+    await expect(switcher).toContainText('Veyra');
     await row.click();
     await expect(row).toHaveAttribute('aria-pressed', 'true');
     await expect(reader.getByRole('heading', { name: report.title, exact: true })).toBeVisible();
@@ -211,20 +220,43 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
     ).toBe(true);
     await page.screenshot({
       path: resolve('.local/screenshots/dashboard-mobile.png'),
-      fullPage: true,
       animations: 'disabled',
     });
-    await page.getByLabel('Current workspace').selectOption(mosslight.id);
-    await expect(page.getByRole('heading', { name: 'Mosslight', exact: true })).toBeVisible();
-    await expect(page.getByText('No activity yet')).toBeVisible();
-    await expect(reader).toHaveCount(0);
-    await expect(page.getByText(report.title)).toHaveCount(0);
-    await page.getByRole('button', { name: 'Edit workspace' }).click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    const status = page.getByRole('banner').getByRole('status');
+    const agents = page.getByRole('banner').getByRole('button', { name: 'Agents', exact: true });
+    const statusBounds = (await status.boundingBox())!;
+    expect(statusBounds.x + statusBounds.width).toBeLessThan((await agents.boundingBox())!.x);
+    await switcher.click();
+    await expect(popup).toBeVisible();
+    const triggerBounds = (await switcher.boundingBox())!;
+    const popupBounds = (await popup.boundingBox())!;
+    const gap = popupBounds.y - (triggerBounds.y + triggerBounds.height);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(16);
+    expect(popupBounds.x).toBeGreaterThanOrEqual(0);
+    expect(popupBounds.x + popupBounds.width).toBeLessThanOrEqual(390);
+    expect((await page.locator('.activity-sidebar').boundingBox())!.y).toBe(mobileSidebar.y);
+    await page.screenshot({
+      path: resolve('.local/screenshots/dashboard-mobile-switcher.png'),
+      animations: 'disabled',
+    });
+    await popup.getByRole('button', { name: 'Edit workspace' }).click();
+    await expect(page.getByRole('dialog', { name: 'Edit workspace' })).toBeVisible();
+    await expect(page.getByLabel('Workspace name')).toHaveValue('Veyra');
+    await page.screenshot({
+      path: resolve('.local/screenshots/dashboard-mobile-workspace-editor.png'),
+      animations: 'disabled',
+    });
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await switcher.click();
+    await popup.getByLabel('Current workspace').selectOption(mosslight.id);
+    await expect(switcher).toContainText('Mosslight');
+    await expect(page.getByText('No activity yet')).toBeVisible();
+    await expect(reader).toHaveCount(0);
+    await expect(page.getByText(report.title)).toHaveCount(0);
     await page.getByRole('button', { name: 'Agents' }).click();
     await expect(page.getByRole('dialog')).toContainText('http://127.0.0.1:4321/mcp');
     expect(
@@ -234,7 +266,10 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
       .getByRole('dialog')
       .getByRole('button', { name: 'Close dialog', exact: true })
       .click();
-    await page.getByLabel('Current workspace').selectOption(veyra.id);
+    await switcher.click();
+    await popup.getByLabel('Current workspace').selectOption(veyra.id);
+    await page.keyboard.press('Escape');
+    await expect(switcher).toBeFocused();
     await expect(page.locator('article.activity-item')).toHaveCount(3);
     await expect(reader.getByRole('heading', { name: 'Choose a weather provider' })).toBeVisible();
     await page.route('**/api/workspaces', (route) => route.abort());

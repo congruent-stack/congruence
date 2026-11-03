@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { Activity, AgentSettings } from '@congruence/contracts';
 import {
   ArrowUpRight,
@@ -215,13 +215,11 @@ export function ActivityFeed({
   loading,
   agentSettings,
   agentSettingsError,
-  heading,
 }: {
   items: Activity[];
   loading: boolean;
   agentSettings?: AgentSettings;
   agentSettingsError?: string;
-  heading?: ReactNode;
 }) {
   const [messageItem, setMessageItem] = useState<Activity>();
   const [historyItem, setHistoryItem] = useState<Activity>();
@@ -250,7 +248,7 @@ export function ActivityFeed({
     <div className="activity-panel">
       <section className="panel activity-sidebar" aria-labelledby="activity-title">
         <div className="panel-heading">
-          {heading ?? <h2 id="activity-title">Activity</h2>}
+          <h2 id="activity-title">Activity</h2>
           <label className="search-box">
             <Search size={15} />
             <input

@@ -107,8 +107,9 @@ test('activity keeps its title and compares saved versions on desktop and mobile
     expect(renamed.ok()).toBe(false);
 
     await page.goto(url);
-    await page.getByLabel('Current workspace').selectOption(workspace.id);
+    await page.getByRole('button', { name: /^Switch workspace and view/ }).click();
     await expect(page.locator('.workspace-id')).toHaveText(`Workspace ID ${workspace.shortId}`);
+    await page.keyboard.press('Escape');
     const row = page.locator('article.activity-item').filter({ hasText: report.title });
     const reader = page.locator('article.activity-reader');
     await expect(row.getByText('Ready for offline trips', { exact: true })).toBeVisible();
@@ -264,7 +265,6 @@ test('a long version timeline scrolls and preserves the selected comparison afte
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(url);
-    await page.getByLabel('Current workspace').selectOption(workspace.id);
     const row = page.locator('article.activity-item').filter({ hasText: report.title });
     await row.locator('.activity-main').click();
     await page
@@ -413,7 +413,6 @@ test('multiline comparisons align edited lines and insertion or deletion spacers
     await app.store.publishActivity({ ...report, workId: first.workId, summary: after.join('\n') });
 
     await page.goto(url);
-    await page.getByLabel('Current workspace').selectOption(workspace.id);
     const row = page.locator('article.activity-item').filter({ hasText: report.title });
     await row.locator('.activity-main').click();
     await page

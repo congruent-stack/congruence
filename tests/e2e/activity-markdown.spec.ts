@@ -62,7 +62,6 @@ test('renders grouped Markdown in the selected activity and version previews, ke
     await app.store.publishActivity({ ...report, workId: first.workId, summary });
 
     await page.goto(url);
-    await page.getByLabel('Current workspace').selectOption(workspace.id);
     const row = page.locator('article.activity-item').filter({ hasText: report.title });
     const reader = page.locator('article.activity-reader');
     await expect(row.locator('.activity-main')).toHaveAttribute('aria-pressed', 'true');
@@ -215,7 +214,6 @@ test('Markdown activity summaries keep raw HTML and unsafe URLs inert', async ({
       (window as unknown as { __markdownExecuted: number }).__markdownExecuted = 0;
     });
     await page.goto(url);
-    await page.getByLabel('Current workspace').selectOption(workspace.id);
     const row = page
       .locator('article.activity-item')
       .filter({ hasText: 'Inspect imported summary' });
