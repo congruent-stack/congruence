@@ -12,8 +12,8 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
   request,
 }) => {
   const browserErrors: string[] = [];
-  const switcher = page.getByRole('button', { name: /^Switch workspace and view/ });
-  const popup = page.getByRole('dialog', { name: 'Workspace and view' });
+  const switcher = page.getByRole('button', { name: /^Workspace:/ });
+  const popup = page.getByRole('dialog', { name: 'Choose workspace' });
   // Fictional projects and work reports used only for UI testing and screenshots.
   page.on('pageerror', (error) => browserErrors.push(error.message));
   await page.goto('/');
@@ -21,10 +21,9 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
   await page.getByLabel('Workspace name').fill('Veyra');
   await page.getByLabel(/^Description/).fill('A stargazing planner for weekend trips.');
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click();
-  await expect(switcher).toHaveAccessibleName('Switch workspace and view, Veyra, Activity');
+  await expect(switcher).toHaveAccessibleName('Workspace: Veyra');
   await expect(page.getByText('No activity yet')).toBeVisible();
-  await switcher.click();
-  await popup.getByRole('button', { name: 'Edit workspace' }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Edit workspace' }).click();
   await page
     .getByRole('textbox', { name: /^Repositories/ })
     .fill('D:\\projects\\veyra-web\nhttps://example.com/veyra/star-catalog');
@@ -36,6 +35,19 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
   await page.getByLabel('Workspace name').fill('Mosslight');
   await page.getByLabel(/^Description/).fill('A field journal for urban wildlife.');
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click();
+  await expect(switcher).toContainText('Mosslight');
+  await switcher.click();
+  const search = page.getByRole('combobox', { name: 'Search workspaces' });
+  await expect(search).toBeFocused();
+  await search.fill('no matching workspace');
+  await expect(popup.getByRole('option')).toHaveCount(0);
+  await expect(popup.getByRole('status')).toHaveText('No matching workspaces.');
+  await search.fill('  VEYRA  ');
+  await expect(popup.getByRole('option')).toHaveCount(1);
+  await expect(popup.getByRole('option')).toHaveText(/Veyra/);
+  await search.press('Escape');
+  await expect(popup).toBeHidden();
+  await expect(switcher).toBeFocused();
   await expect(switcher).toContainText('Mosslight');
   const workspaces = await (await request.get('/api/workspaces')).json();
   const veyra = workspaces.find((workspace: { name: string }) => workspace.name === 'Veyra');
@@ -63,7 +75,8 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
     const { activity: item } = result.structuredContent as { activity: { workKey: string } };
     await expect(page.getByText(report.title)).toHaveCount(0);
     await switcher.click();
-    await popup.getByLabel('Current workspace').selectOption(veyra.id);
+    await expect(search).toHaveValue('');
+    await popup.getByRole('option', { name: 'Veyra', exact: true }).click();
     await page.keyboard.press('Escape');
     const list = page.locator('.activity-list');
     const row = list.getByRole('button', { name: report.title, exact: true });
@@ -240,7 +253,8 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
       path: resolve('.local/screenshots/dashboard-mobile-switcher.png'),
       animations: 'disabled',
     });
-    await popup.getByRole('button', { name: 'Edit workspace' }).click();
+    await page.keyboard.press('Escape');
+    await page.getByRole('banner').getByRole('button', { name: 'Edit workspace' }).click();
     await expect(page.getByRole('dialog', { name: 'Edit workspace' })).toBeVisible();
     await expect(page.getByLabel('Workspace name')).toHaveValue('Veyra');
     await page.screenshot({
@@ -251,8 +265,11 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(
+      page.getByRole('banner').getByRole('button', { name: 'Edit workspace' }),
+    ).toBeFocused();
     await switcher.click();
-    await popup.getByLabel('Current workspace').selectOption(mosslight.id);
+    await popup.getByRole('option', { name: 'Mosslight', exact: true }).click();
     await expect(switcher).toContainText('Mosslight');
     await expect(page.getByText('No activity yet')).toBeVisible();
     await expect(reader).toHaveCount(0);
@@ -267,7 +284,7 @@ test('workspaces receive real MCP updates, preserve isolation, and work on mobil
       .getByRole('button', { name: 'Close dialog', exact: true })
       .click();
     await switcher.click();
-    await popup.getByLabel('Current workspace').selectOption(veyra.id);
+    await popup.getByRole('option', { name: 'Veyra', exact: true }).click();
     await page.keyboard.press('Escape');
     await expect(switcher).toBeFocused();
     await expect(page.locator('article.activity-item')).toHaveCount(3);

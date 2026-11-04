@@ -134,9 +134,10 @@ async function dashboardFixture(page: Page, workspace: Workspace) {
     await route.fulfill({ json: run });
   });
   await page.goto('/');
-  await page.getByRole('button', { name: /^Switch workspace and view/ }).click();
-  await page.getByLabel('Current workspace').selectOption(workspace.id);
-  await page.getByLabel('View', { exact: true }).selectOption('weather');
+  await page.getByRole('button', { name: /^Workspace:/ }).click();
+  await page.getByRole('option', { name: workspace.name, exact: true }).click();
+  await page.getByRole('button', { name: /^View:/ }).click();
+  await page.getByRole('option', { name: 'Weather console', exact: true }).click();
   await expect(
     page.frameLocator('iframe').getByRole('heading', { name: 'Forecast controls' }),
   ).toBeVisible();
@@ -170,8 +171,8 @@ test('custom dashboard commands require host review and retain the exact resolve
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByText('Command history', { exact: false }).click();
   await expect(page.locator('.dashboard-run')).toContainText('Collect snapshot');
-  await page.getByRole('button', { name: /^Switch workspace and view/ }).click();
-  await page.getByLabel('View', { exact: true }).selectOption('activity');
+  await page.getByRole('button', { name: /^View:/ }).click();
+  await page.getByRole('option', { name: 'Activity', exact: true }).click();
   await expect(page.locator('iframe')).toHaveCount(0);
 });
 
@@ -239,17 +240,43 @@ test('dashboard choice persists separately for each workspace and Activity stays
   ).json()) as Workspace;
   await dashboardFixture(page, first);
   await page.reload();
-  const switcher = page.getByRole('button', { name: /^Switch workspace and view/ });
-  await expect(switcher).toContainText('Weather console');
-  await switcher.click();
-  const view = page.getByLabel('View', { exact: true });
-  await expect(view.locator('option').first()).toHaveText('Activity');
-  await expect(view).toHaveValue('weather');
-  await page.getByLabel('Current workspace').selectOption(second.id);
-  await expect(view).toHaveValue('activity');
-  await expect(view.locator('option')).toHaveCount(1);
-  await page.getByLabel('Current workspace').selectOption(first.id);
-  await expect(view).toHaveValue('weather');
+  const workspace = page.getByRole('button', { name: /^Workspace:/ });
+  const view = page.getByRole('button', { name: /^View:/ });
+  await expect(view).toContainText('Weather console');
+  await view.click();
+  const popup = page.getByRole('dialog', { name: 'Choose view' });
+  await expect(popup.getByRole('option').first()).toHaveText('Activity');
+  await expect(popup.getByRole('option', { selected: true })).toHaveAccessibleName(
+    'Weather console',
+  );
+  const search = page.getByRole('combobox', { name: 'Search views' });
+  await expect(search).toBeFocused();
+  await search.fill('no matching view');
+  await expect(popup.getByRole('option')).toHaveCount(0);
+  await expect(popup.getByRole('status')).toHaveText('No matching views.');
+  await search.fill('  WEATHER  ');
+  await expect(popup.getByRole('option')).toHaveCount(1);
+  await search.press('Enter');
+  await expect(popup).toBeHidden();
+  await expect(view).toBeFocused();
+  await view.click();
+  await expect(search).toHaveValue('');
+  await search.press('ArrowUp');
+  await search.press('Enter');
+  await expect(view).toContainText('Activity');
+  await view.click();
+  await search.press('ArrowDown');
+  await search.press('Enter');
+  await expect(view).toContainText('Weather console');
+  await workspace.click();
+  await page.getByRole('option', { name: second.name, exact: true }).click();
+  await expect(view).toContainText('Activity');
+  await view.click();
+  await expect(popup.getByRole('option')).toHaveCount(1);
+  await workspace.click();
+  await expect(popup).toBeHidden();
+  await page.getByRole('option', { name: first.name, exact: true }).click();
+  await expect(view).toContainText('Weather console');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

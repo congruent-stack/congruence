@@ -107,7 +107,7 @@ test('activity keeps its title and compares saved versions on desktop and mobile
     expect(renamed.ok()).toBe(false);
 
     await page.goto(url);
-    await page.getByRole('button', { name: /^Switch workspace and view/ }).click();
+    await page.getByRole('button', { name: /^Workspace:/ }).click();
     await expect(page.locator('.workspace-id')).toHaveText(`Workspace ID ${workspace.shortId}`);
     await page.keyboard.press('Escape');
     const row = page.locator('article.activity-item').filter({ hasText: report.title });

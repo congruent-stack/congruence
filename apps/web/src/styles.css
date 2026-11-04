@@ -312,7 +312,6 @@ code,
 }
 .topbar-inner {
   --header-height: 60px;
-  --switcher-left: 175px;
   width: 100%;
   height: var(--header-height);
   padding: 0 32px;
@@ -333,141 +332,157 @@ code,
   color: var(--muted);
 }
 .workspace-switcher {
-  min-width: 0;
-  max-width: 520px;
-}
-.switcher-trigger {
-  anchor-name: --workspace-trigger;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+  min-width: 0;
+  width: 500px;
   max-width: 100%;
-  min-height: 36px;
+}
+.header-picker {
+  flex: 1;
+  min-width: 0;
+}
+.picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
-  padding: 6px 10px;
+  padding: 5px 10px;
   text-align: left;
 }
-.switcher-trigger:hover,
-.workspace-switcher:has(:popover-open) .switcher-trigger {
+.picker-trigger:hover:not(:disabled),
+.picker-trigger[aria-expanded='true'] {
   border-color: #424952;
   background: var(--raised);
 }
-.switcher-path {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  min-width: 0;
-  font-size: 13px;
+.picker-trigger:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
-.switcher-workspace,
-.switcher-view {
+.picker-value {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.2;
+}
+.picker-label {
+  color: var(--muted);
+  font-size: 10px;
+}
+.picker-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.switcher-workspace,
-.switcher-chevron,
-.switcher-separator {
-  color: var(--muted);
-}
-.switcher-view {
+  font-size: 13px;
   font-weight: 550;
 }
-.workspace-switcher:has(:popover-open) .switcher-chevron {
+.picker-chevron {
+  color: var(--muted);
+}
+.picker-trigger[aria-expanded='true'] .picker-chevron {
   transform: rotate(180deg);
 }
-.switcher-popover {
-  --panel-width: min(336px, calc(100% - 24px));
-  position: absolute;
+.workspace-edit {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.picker-popover {
+  --panel-width: min(336px, calc(100vw - 24px));
+  position: fixed;
   inset: auto;
-  left: clamp(12px, var(--switcher-left), calc(100% - var(--panel-width) - 12px));
-  top: var(--header-height);
-  position-anchor: --workspace-trigger;
-  left: clamp(12px, anchor(left), calc(100% - var(--panel-width) - 12px));
-  top: calc(anchor(bottom) + 7px);
+  left: clamp(12px, var(--picker-left), calc(100vw - var(--panel-width) - 12px));
+  top: var(--picker-top);
   margin: 0;
   width: var(--panel-width);
-  max-height: calc(100dvh - var(--header-height) - 12px);
+  max-height: calc(100dvh - var(--picker-top) - 12px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px;
+  padding: 0;
   border: 1px solid #3a4048;
   border-radius: 9px;
   background: var(--surface);
   color: inherit;
   box-shadow: 0 12px 32px #0006;
 }
-.switcher-field + .switcher-field {
-  margin-top: 16px;
+.picker-popover:popover-open {
+  display: flex;
+  flex-direction: column;
 }
-.switcher-field-heading,
-.switcher-view-row,
-.switcher-actions {
+.picker-search {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.switcher-field-heading {
-  justify-content: space-between;
-}
-.switcher-field label {
-  font-size: 12px;
-  font-weight: 600;
-}
-.switcher-field p,
-.switcher-popover > p {
-  margin-top: 6px;
+  flex-shrink: 0;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
 }
-.switcher-field-heading + .switcher-select,
-.switcher-view-row {
-  margin-top: 6px;
-}
-.switcher-select {
-  position: relative;
-  min-width: 0;
-  flex: 1;
-}
-.switcher-select select {
-  display: block;
+.picker-search input {
   width: 100%;
-  min-height: 36px;
-  appearance: none;
-  border: 1px solid #3a4049;
-  background: #111315;
-  border-radius: 5px;
-  padding: 6px 30px 6px 10px;
-  text-overflow: ellipsis;
-  cursor: pointer;
+  min-width: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  padding: 3px;
   font-size: 13px;
 }
-.switcher-select > svg {
-  pointer-events: none;
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+.picker-options {
+  min-height: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+}
+.picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 8px;
+  border-radius: 5px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.picker-option.is-active {
+  background: var(--raised);
+}
+.picker-option[aria-selected='true'] > svg {
+  color: var(--accent);
+}
+.picker-option-text {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+.picker-option-text small {
+  white-space: pre-wrap;
+  font-size: 11px;
+  line-height: 1.5;
   color: var(--muted);
 }
-.switcher-actions {
+.picker-empty {
+  padding: 16px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.picker-footer {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  margin-top: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 8px;
   border-top: 1px solid var(--border);
-  padding-top: 8px;
-}
-.switcher-popover .workspace-form {
-  margin-top: 12px;
-}
-.switcher-popover .workspace-form label {
-  margin-top: 12px;
-}
-.switcher-popover .dialog-footer {
-  padding-top: 16px;
 }
 .local-status {
   margin-left: auto;
@@ -1815,8 +1830,10 @@ textarea::placeholder {
 }
 @media (max-width: 600px) {
   .topbar-inner {
-    --switcher-left: 52px;
-    padding: 0 12px;
+    height: auto;
+    min-height: var(--header-height);
+    flex-wrap: wrap;
+    padding: 8px 12px;
     gap: 8px;
   }
   .brand {
@@ -1824,31 +1841,23 @@ textarea::placeholder {
     width: 32px;
     min-height: 44px;
   }
-  .brand span,
-  .switcher-separator {
+  .brand span {
     display: none;
   }
   .workspace-switcher {
-    flex: 1;
+    order: 4;
+    flex: 1 0 100%;
   }
-  .switcher-trigger {
-    width: 100%;
+  .picker-trigger {
     min-height: 44px;
-    justify-content: space-between;
     gap: 5px;
-    padding: 4px 9px;
+    padding: 5px 9px;
   }
-  .switcher-path {
-    display: grid;
-    gap: 0;
-    line-height: 1.25;
-  }
-  .switcher-workspace {
-    font-size: 11px;
-  }
-  .switcher-select select {
-    min-height: 44px;
+  .picker-search input {
     font-size: 16px;
+  }
+  .picker-option {
+    min-height: 44px;
   }
   .local-status {
     gap: 4px;

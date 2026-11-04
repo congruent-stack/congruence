@@ -73,9 +73,9 @@ test('published React dashboards read backend data, review frozen commands, surv
     expect(published.statusCode, published.body).toBe(200);
     const first = published.json<DashboardSummary>();
     await page.goto(url);
-    const switcher = page.getByRole('button', { name: /^Switch workspace and view/ });
+    const switcher = page.getByRole('button', { name: /^View:/ });
     await switcher.click();
-    await page.getByLabel('View', { exact: true }).selectOption(location.dashboard.id);
+    await page.getByRole('option', { name: 'Station overview', exact: true }).click();
     const frame = page.frameLocator('iframe');
     await expect(frame.getByRole('heading', { name: 'Station readings' })).toBeVisible();
     await expect(frame.getByText('North station · 18 °C')).toBeVisible();
@@ -140,7 +140,7 @@ test('published React dashboards read backend data, review frozen commands, surv
     });
     await expect(updatedHeading).toBeVisible();
     await updatedHeading.click({ position: { x: 4, y: 4 } });
-    await expect(page.getByRole('dialog', { name: 'Workspace and view' })).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Choose view' })).toBeHidden();
     await page.reload();
     await expect(updatedHeading).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
